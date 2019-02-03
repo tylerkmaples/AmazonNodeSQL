@@ -61,15 +61,13 @@ function read() {
 
 
 // UPDATE THE DATABASE
-function update (stock_quantity, item_id){
-    connection.query(`
-        UPDATE products SET
-        stock_quantity = ?
-        WHERE item_id = ?
-    `)[stock_quantity, item_id], function(err, res){
-        console.log("stock updated");
-    };
+function update (newQuant, id){
+    connection.query("UPDATE products SET stock_quantity = ? WHERE item_id = ?", [newQuant, id], function(err, res){
+        console.log("that shit be updated");
+        
+    })
 };
+
 
 // SHOP ALLOWS USERS TO SEE THE STORE, CHOOSE WHICH ITEM TO BUY, AND BUY IT (IF ENOUGH STOCK_QUANTITY)
 function shop () {
@@ -108,7 +106,16 @@ function shop () {
                 shop();
             }
             else {
-                console.log("Awesome! You bought: "+ chosenItem.product_name);
+                console.log("================================================================")
+                console.log("================================================================")
+                console.log("You bought: " + chosenItem.product_name);
+                console.log("================================================================")
+                console.log("Your total for this purchase is: $" + (chosenItem.price * answer.amount));
+                console.log("=================================================================")
+                console.log("================================================================")
+                var newQuant = parseInt(chosenItem.stock_quantity) - parseInt(answer.amount);
+                update(newQuant, chosenItem.item_id);
+                
                 inquirer
                 .prompt ([
                     {
@@ -121,13 +128,15 @@ function shop () {
                 .then(function(answer){
                     if(answer.action === "Yes") {
                         shop();
+                        
+                        
                     }
                     else {
-                        connection.end();
+                        console.log("Thank you! Come again!")
+                        connection.end(); 
                     }
                 });
             };
         })
     })
 };
-    
