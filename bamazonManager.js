@@ -27,7 +27,7 @@ function start (){
         { 
             name: "managerStuff",
             type: "list",
-            message: "Hello. Would you like to [VIEW PRODUCTS] for sale, [VIEW LOW] inventory, [REPLENISH] low inventory, or [ADD NEW] product, or [EXIT]?",
+            message: "Hello. Would you like to [VIEW PRODUCTS] for sale, [VIEW LOW] inventory, [REPLENISH] low inventory, [ADD NEW] product, or [EXIT]?",
             choices: ["VIEW PRODUCTS", "VIEW LOW", "REPLENISH", "ADD NEW", "EXIT"]
         }
     )
@@ -37,10 +37,47 @@ function start (){
             viewProducts();
         }
         else if (answer.managerStuff.toUpperCase() === "VIEW LOW"){
-            viewLow();
+            checkArray = [];
+            connection.query("SELECT * FROM products WHERE stock_quantity < 5", function(err, res){
+                if (err) throw err;
+                res.forEach(function(product) {
+                    checkArray.push({
+                        'name': product.product_name,
+                        'value': product.item_id
+                    });
+                });
+                if (checkArray === undefined || checkArray.length == 0) {
+                    console.log("================================================")
+                    console.log("You do not have any items with low enough stock");
+                    console.log("================================================")
+                    start();
+                }
+                else {
+                    viewLow();
+                }
+            });    
         }
         else if (answer.managerStuff.toUpperCase() === "REPLENISH") {
-            replenish();
+            checkArray = [];
+            connection.query("SELECT * FROM products WHERE stock_quantity < 5", function(err, res){
+                if (err) throw err;
+                res.forEach(function(product) {
+                    checkArray.push({
+                        'name': product.product_name,
+                        'value': product.item_id
+                    });
+                });
+                if (checkArray === undefined || checkArray.length == 0) {
+                    console.log("================================================")
+                    console.log("You do not have any items with low enough stock");
+                    console.log("================================================")
+                    start();
+                }
+                else {
+                    replenish();
+                }
+            });    
+
         }
         else if (answer.managerStuff.toUpperCase() === "ADD NEW") {
             addNew();
@@ -53,13 +90,13 @@ function start (){
 };
 
 // UPDATE THE STOCK
-function update(newStock, id) {
-    console.log(newStock);
-    console.log(id);
+function update(newStock, id, name) {
     connection.query("UPDATE products SET stock_quantity = ? WHERE item_id = ?", [newStock, id], function(err, res){
         if (err) throw err;
-        console.log("You added " + newStock + " to " + id + "'s stock.")
+        console.log("You added " + newStock + " to " + name + "'s stock.")
+        start();
     })
+    
 }
 
 // VIEW PRODUCTS FOR SALE
@@ -125,19 +162,54 @@ function replenish (){
         ])
         .then(function(answer){
             var chosenItem;
-            console.log(chosenItem)
-            for (var i = 0; i < res.legnth; i++){
+            for (var i = 0; i < res.length; i++){
                 if (res[i].item_id === answer.choice) {
                     chosenItem = res[i];
+                    var newStock = parseInt(chosenItem.stock_quantity) + parseInt(answer.amount)
+                    update(newStock, chosenItem.item_id, chosenItem.product_name);
                 }
-            };
-            var newStock = parseInt(chosenItem.stock_quantity) + parseInt(answer.amount);
-            // update(newStock, chosenItem);
+            }
         })
         
     })
 }
 
+// ADD NEW PRODUCT 
 function addNew(){
-    
+    inquirer
+    .prompt([
+        {
+            name: "name",
+            type: "input",
+            message: "What is the new product's name?"
+        },
+        {
+            name: "department",
+            type: "input",
+            message: "What department would you like to put this in?"
+        },
+        {
+            name: "price",
+            type: "input",
+            message: "How much does this product cost?"
+        },
+        {
+            name: "quantity",
+            type: "input",
+            message: "How much of this item would you like to add?"
+        }
+    ])
+    .then(function(answer){
+        connection.query("INSERT INTO products SET ?",
+        {
+          product_name: answer.name,
+          department_name: answer.department,
+          price: parseInt(answer.price),
+          stock_quantity: parseInt(answer.quantity)
+        },
+        function(err, res){
+            console.log("Aded that!")
+            start();
+        })
+    })
 }
